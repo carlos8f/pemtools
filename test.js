@@ -38,12 +38,26 @@ describe('tests', function () {
   });
 
   it('convert to pem', function () {
-    pem = codec.encode(buf, 'COOL IMAGE');
+    pem = codec.encode(buf, {tag: 'COOL IMAGE'});
     assert.equal(crypto.createHash('sha1').update(pem).digest('hex'), 'dd8c857178055695f1da6f624f513464e5178af2');
   });
 
   it('convert to buffer', function () {
     var back = codec.decode(pem);
+    assert.deepEqual(back, buf);
+    assert.equal(crypto.createHash('sha1').update(back).digest('hex'), '2bce2ffc40e0d90afe577a76db5db4290c48ddf4');
+  });
+
+  it('converts to encrypted pem', function () {
+    pem = codec.encode(buf, {passphrase: 'totally secret', tag: 'COOL SECRET IMAGE'});
+    assert(pem.match(/DEK-Info: /));
+  });
+
+  it('decrypts', function () {
+    assert.throws(function () {
+      codec.decode(pem, 'totally awesome');
+    });
+    var back = codec.decode(pem, 'totally secret');
     assert.deepEqual(back, buf);
     assert.equal(crypto.createHash('sha1').update(back).digest('hex'), '2bce2ffc40e0d90afe577a76db5db4290c48ddf4');
   });
