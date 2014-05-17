@@ -1,6 +1,6 @@
 {
   "name": "pem-generic",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Encode/decode buffers into/from PEM format",
   "main": "index.js",
   "scripts": {
