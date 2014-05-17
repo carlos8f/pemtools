@@ -1,0 +1,26 @@
+{
+  "name": "pem-generic",
+  "version": "0.0.0",
+  "description": "Encode/decode buffers into/from PEM format",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --reporter spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gist.github.com:/f0ab86a32d130c3634a3.git"
+  },
+  "keywords": [
+    "pem",
+    "crypto",
+    "pki"
+  ],
+  "author": "Carlos Rodriguez <carlos@s8f.org> (http://s8f.org/)",
+  "license": "MIT",
+  "devDependencies": {
+    "idgen": "^2.0.2",
+    "mocha": "^1.18.2",
+    "request": "^2.34.0",
+    "rimraf": "^2.2.8"
+  }
+}
