@@ -1,7 +1,7 @@
 {
   "name": "pemtools",
   "version": "0.1.0",
-  "description": "Encode/decode buffers into/from PEM format",
+  "description": "Convert Buffers to/from PEM strings, and read/write SSH/RSA key files. supports DEK encryption.",
   "main": "index.js",
   "scripts": {
     "test": "mocha --reporter spec"
@@ -11,9 +11,16 @@
     "url": "git@gist.github.com:/f0ab86a32d130c3634a3.git"
   },
   "keywords": [
+    "ssh",
+    "rsa",
     "pem",
     "crypto",
-    "pki"
+    "pki",
+    "der",
+    "pubkey",
+    "encode",
+    "decode",
+    "parser"
   ],
   "author": "Carlos Rodriguez <carlos@s8f.org> (http://s8f.org/)",
   "license": "MIT",
