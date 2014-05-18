@@ -63,7 +63,7 @@ exports.writeSSHPubkey = function (opts) {
     + ' '
     + (exports.serialize([
       opts.type || 'ssh-rsa',
-      opts.exponent,
+      opts.publicExponent,
       opts.modulus
     ]).toString('base64'))
     + ' '
@@ -79,7 +79,7 @@ exports.readSSHPubkey = function (str) {
   return {
     type: parts[0].toString('ascii'),
     modulus: parts[2],
-    exponent: parts[1],
+    publicExponent: parts[1],
     bits: (parts[2].length - 1) * 8,
     comment: input[2] ? input.slice(2).join(' ') : ''
   };
@@ -103,6 +103,21 @@ function PEM (input, tag, passphrase) {
     this.decode(input, passphrase);
     if (input.indexOf('-----BEGIN RSA PRIVATE KEY-----') === 0) {
       this.privateKey = exports.RSAPrivateKey.decode(this.buf, 'der');
+      var privateKey = this.privateKey;
+      Object.keys(privateKey).forEach(function (k) {
+        if (typeof privateKey[k] !== 'string' && privateKey[k] !== null) {
+          if (typeof privateKey[k] === 'number') {
+            var hex = privateKey[k].toString(16);
+            if (hex.length % 2) hex = '0' + hex;
+            privateKey[k] = Buffer(hex, 'hex');
+          }
+          else {
+            var buf = privateKey[k].toBuffer();
+            if (!k.match(/exponent/)) buf = Buffer.concat([Buffer('00', 'hex'), buf]);
+            privateKey[k] = buf;
+          }
+        }
+      });
     }
   }
 }
@@ -124,18 +139,32 @@ PEM.prototype.toSSH = function () {
 PEM.prototype.decode = function (str, passphrase) {
   // store input
   if (str) this.pem = str.toString('ascii').trim();
-  var tagMatch = this.pem.match(/\-\-\-\-\-\s*BEGIN ?([^-]+)?\-\-\-\-\-/);
+  var lines = this.pem.split(/\r?\n/);
+  var tagMatch = lines[0].match(/\-\-\-\-\-\s*BEGIN ?([^-]+)?\-\-\-\-\-/);
   if (tagMatch) this.tag = tagMatch[1];
-  if (this.pem.split(/\r?\n/)[1] === 'Proc-Type: 4,ENCRYPTED') {
-    this.buf = sshKeyDecrypt(this.pem, passphrase, 'buffer');
+  else throw new Error('parse PEM: BEGIN not found');
+  lines.shift();
+  var dekInfo;
+  if (lines[0] === 'Proc-Type: 4,ENCRYPTED') {
+    dekInfo = lines[1].match(/DEK-Info: ([^,]+),([0-9A-F]+)/i);
+    lines.splice(0, 3);
+    if (typeof passphrase !== 'string') throw new Error('PEM is encrypted but no passphrase given');
+    if (this.tag === 'RSA PRIVATE KEY') {
+      // see https://www.openssl.org/docs/crypto/pem.html#PEM_ENCRYPTION_FORMAT
+      this.buf = sshKeyDecrypt(this.pem, passphrase, 'buffer');
+      return this.buf;
+    }
+    // modern key derivation (PKCS#8)
+    var algorithm = dekInfo[1].toLowerCase();
+    var salt = Buffer(dekInfo[2], 'hex');
+    var key = crypto.pbkdf2Sync(passphrase, salt, 2048, sshKeyDecrypt.keyBytes[algorithm.toUpperCase()]);
+    var decipher = crypto.createDecipheriv(algorithm, key, salt);
   }
-  else {
-    this.buf = Buffer(
-      this.pem
-        .replace(/.*\-\-\-\-\-BEGIN.*\-\-\-\-\-\s*/, '')
-        .replace(/\r?\n\-\-\-\-\-END.*\-\-\-\-\-.*/, '')
-        .replace(/\s*/g, '')
-      , 'base64');
+  lines.pop();
+  this.buf = Buffer(lines.join(''), 'base64');
+  if (dekInfo) {
+    var buf1 = decipher.update(this.buf);
+    this.buf = Buffer.concat([buf1, decipher.final()]);
   }
   return this.buf;
 };
@@ -154,7 +183,12 @@ PEM.prototype.encode = function (buf, tag, passphrase) {
       + ','
       + (salt.toString('hex').toUpperCase())
       + '\n\n');
-    var key = sshKeyDecrypt.EVP_BytesToKey(algorithm.toUpperCase(), passphrase, salt);
+    if (this.tag === 'RSA PRIVATE KEY')
+      // see https://www.openssl.org/docs/crypto/pem.html#PEM_ENCRYPTION_FORMAT
+      var key = sshKeyDecrypt.EVP_BytesToKey(algorithm.toUpperCase(), passphrase, salt);
+    else
+      // see https://www.openssl.org/docs/crypto/pem.html#NOTES
+      var key = crypto.pbkdf2Sync(passphrase, salt, 2048, sshKeyDecrypt.keyBytes[algorithm.toUpperCase()]);
     var cipher = crypto.createCipheriv(algorithm, key, salt);
     var buf1 = cipher.update(this.buf);
     this.buf = Buffer.concat([buf1, cipher.final()]);
