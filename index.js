@@ -8,6 +8,8 @@ module.exports = exports = function (input, tag, passphrase) {
   return new PEM(input, tag, passphrase);
 };
 
+exports.PEM = PEM;
+
 exports.RSAPrivateKey = asn.define('RSAPrivateKey', function () {
   this.seq().obj(
     this.key('version').int({
