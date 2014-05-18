@@ -1,6 +1,6 @@
 {
   "name": "pemtools",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Convert Buffers to/from PEM strings, and read/write SSH/RSA key files. supports DEK encryption.",
   "main": "index.js",
   "scripts": {
