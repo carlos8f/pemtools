@@ -1,7 +1,7 @@
 var crypto = require('crypto')
   , sshKeyToPEM = require('ssh-key-to-pem')
   , asn = require('asn1.js')
-  , EVP_BytesToKey = require('EVP_BytesToKey')
+  , sshKeyDecrypt = require('ssh-key-decrypt')
 
 // constructor
 module.exports = exports = function (input, tag, passphrase) {
@@ -124,36 +124,16 @@ PEM.prototype.toSSH = function () {
 PEM.prototype.decode = function (str, passphrase) {
   // store input
   if (str) this.pem = str.toString('ascii').trim();
-  var pem = this.pem;
-  var match = pem.match(/\-\-\-\-\-\s*BEGIN\s*([^\-]*)\-\-\-\-\-\r?\n/);
-  if (!match) throw new Error('no start tag found in PEM');
-  this.tag = match[1].trim();
-  // parse DEK-Info
-  var dekInfo = pem.match(/DEK-Info: ([^,]+),([0-9A-F]+)/i);
-  if (dekInfo) {
-    if (typeof passphrase !== 'string')
-      throw new Error('PEM is encrypted but no passphrase given');
-    var algorithm = dekInfo[1].toLowerCase();
-    var salt = Buffer(dekInfo[2], 'hex');
-    var key = EVP_BytesToKey(dekInfo[1], passphrase, salt);
-    var decipher = crypto.createDecipher(algorithm, key, salt);
-    pem = pem
-      .replace(/Proc-Type: .*\s*/, '')
-      .replace(/DEK-Info: .*\s*/, '');
+  if (this.pem.split(/\r?\n/)[1] === 'Proc-Type: 4,ENCRYPTED') {
+    this.buf = sshKeyDecrypt(this.pem, passphrase, 'buffer');
   }
-
-  // strip to base64 data
-  this.buf = Buffer(
-    pem
-      .replace(/.*\-\-\-\-\-BEGIN.*\-\-\-\-\-\s*/, '')
-      .replace(/\r?\n\-\-\-\-\-END.*\-\-\-\-\-.*/, '')
-      .replace(/\s*/g, '')
-    , 'base64');
-
-  // decrypt if needed
-  if (dekInfo) {
-    var buf1 = decipher.update(this.buf);
-    this.buf = Buffer.concat([buf1, decipher.final()]);
+  else {
+    this.buf = Buffer(
+      this.pem
+        .replace(/.*\-\-\-\-\-BEGIN.*\-\-\-\-\-\s*/, '')
+        .replace(/\r?\n\-\-\-\-\-END.*\-\-\-\-\-.*/, '')
+        .replace(/\s*/g, '')
+      , 'base64');
   }
   return this.buf;
 };
@@ -180,7 +160,7 @@ PEM.prototype.encode = function (buf, tag, passphrase) {
       + ','
       + (salt.toString('hex').toUpperCase())
       + '\n\n');
-    var key = EVP_BytesToKey(algorithm.toUpperCase(), passphrase, salt);
+    var key = sshKeyDecrypt.EVP_BytesToKey(algorithm.toUpperCase(), passphrase, salt);
     var cipher = crypto.createCipher(algorithm, key, salt);
     var buf1 = cipher.update(buf);
     buf = Buffer.concat([buf1, cipher.final()]);

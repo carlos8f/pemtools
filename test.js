@@ -17,7 +17,7 @@ if (!process.env.DEBUG) {
 }
 else console.log('tmpDir', tmpDir);
 
-describe('tests', function () {
+describe('test', function () {
   var p = path.join(tmpDir, 'alice.jpg')
     , pem, buf = Buffer('')
  
@@ -58,7 +58,7 @@ describe('tests', function () {
 
   it('decrypts', function () {
     assert.throws(function () {
-      pemtools(pem, null, 'totally awesome');
+      var failed = pemtools(pem, null, 'totally awesome');
     });
     var back = pemtools(pem.toString(), null, 'totally secret');
     assert.equal(back.tag, 'COOL SECRET IMAGE');

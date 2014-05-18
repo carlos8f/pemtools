@@ -28,8 +28,7 @@
   },
   "dependencies": {
     "asn1.js": "^0.3.0",
-    "ssh-key-decrypt": "^0.1.1",
-    "ssh-key-to-pem": "^0.11.0",
-    "EVP_BytesToKey": "git+https://gist.github.com/582aa92e5a9afb8952e5.git"
+    "ssh-key-decrypt": "git+https://github.com/carlos8f/ssh-key-decrypt.git",
+    "ssh-key-to-pem": "^0.11.0"
   }
 }
