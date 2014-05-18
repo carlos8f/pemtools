@@ -1,5 +1,5 @@
 {
-  "name": "pem-generic",
+  "name": "pemtools",
   "version": "0.1.0",
   "description": "Encode/decode buffers into/from PEM format",
   "main": "index.js",
@@ -22,5 +22,8 @@
     "mocha": "^1.18.2",
     "request": "^2.34.0",
     "rimraf": "^2.2.8"
+  },
+  "dependencies": {
+    "ssh-key-to-pem": "^0.11.0"
   }
 }
