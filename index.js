@@ -148,14 +148,14 @@ PEM.prototype.decode = function (str, passphrase) {
   lines.shift();
   var dekInfo;
   if (lines[0] === 'Proc-Type: 4,ENCRYPTED') {
-    dekInfo = lines[1].match(/DEK-Info: ([^,]+),([0-9A-F]+)/i);
-    lines.splice(0, 3);
     if (typeof passphrase !== 'string') throw new Error('PEM is encrypted but no passphrase given');
     if (this.tag === 'RSA PRIVATE KEY') {
       // see https://www.openssl.org/docs/crypto/pem.html#PEM_ENCRYPTION_FORMAT
       this.buf = sshKeyDecrypt(this.pem, passphrase, 'buffer');
       return this.buf;
     }
+    dekInfo = lines[1].match(/DEK-Info: ([^,]+),([0-9A-F]+)/i);
+    lines.splice(0, 3);
     // modern key derivation (PKCS#8)
     var algorithm = dekInfo[1].toLowerCase();
     var salt = Buffer(dekInfo[2], 'hex');
