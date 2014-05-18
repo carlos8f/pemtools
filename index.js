@@ -124,6 +124,8 @@ PEM.prototype.toSSH = function () {
 PEM.prototype.decode = function (str, passphrase) {
   // store input
   if (str) this.pem = str.toString('ascii').trim();
+  var tagMatch = this.pem.match(/\-\-\-\-\-\s*BEGIN ?([^-]+)?\-\-\-\-\-/);
+  if (tagMatch) this.tag = tagMatch[1];
   if (this.pem.split(/\r?\n/)[1] === 'Proc-Type: 4,ENCRYPTED') {
     this.buf = sshKeyDecrypt(this.pem, passphrase, 'buffer');
   }
@@ -138,14 +140,6 @@ PEM.prototype.decode = function (str, passphrase) {
   return this.buf;
 };
 
-exports.keyBytes = {
-  'DES-EDE3-CBC': 24,
-  'DES-CBC': 8,
-  'AES-128-CBC': 16,
-  'AES-192-CBC': 24,
-  'AES-256-CBC': 32
-};
-
 // encode buffer -> PEM string
 PEM.prototype.encode = function (buf, tag, passphrase) {
   if (buf) this.buf = buf;
@@ -154,21 +148,21 @@ PEM.prototype.encode = function (buf, tag, passphrase) {
   if (passphrase) {
     var passphrase = passphrase.toString();
     var algorithm = 'aes-256-cbc';
-    var salt = crypto.randomBytes(8);
+    var salt = crypto.randomBytes(16);
     var dekInfo = ('Proc-Type: 4,ENCRYPTED\nDEK-Info: '
       + (algorithm.toUpperCase())
       + ','
       + (salt.toString('hex').toUpperCase())
       + '\n\n');
     var key = sshKeyDecrypt.EVP_BytesToKey(algorithm.toUpperCase(), passphrase, salt);
-    var cipher = crypto.createCipher(algorithm, key, salt);
-    var buf1 = cipher.update(buf);
-    buf = Buffer.concat([buf1, cipher.final()]);
+    var cipher = crypto.createCipheriv(algorithm, key, salt);
+    var buf1 = cipher.update(this.buf);
+    this.buf = Buffer.concat([buf1, cipher.final()]);
   }
   this.pem = (
     '-----BEGIN' + (tag ? ' ' + tag : '') + '-----\n'
     + dekInfo
-    + Buffer(buf)
+    + Buffer(this.buf)
       .toString('base64')
       .match(/.{1,64}/g)
       .join('\n')
