@@ -77,6 +77,7 @@ describe('ssh key', function () {
       assert.equal(pem.pubkey.publicExponent.toString('hex'), '010001');
       var encoded = pemtools.writeSSHPubkey(pem.pubkey);
       assert.deepEqual(encoded, pubkey);
+      assert.deepEqual(pem.toSSH(), pubkey);
       done();
     });
   });

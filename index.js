@@ -134,7 +134,7 @@ PEM.prototype.toBuffer = function () {
 
 PEM.prototype.toSSH = function () {
   if (!this.sshPubkey) throw new Error('not a pubkey!');
-  return this.sshPubkey;
+  return this.sshPubkey + '\n';
 };
 
 // decode PEM string -> buffer
