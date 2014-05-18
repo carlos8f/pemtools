@@ -1,10 +1,31 @@
 var crypto = require('crypto')
   , sshKeyToPEM = require('ssh-key-to-pem')
+  , asn = require('asn1.js')
+  , EVP_BytesToKey = require('EVP_BytesToKey')
 
 // constructor
 module.exports = exports = function (input, tag, passphrase) {
   return new PEM(input, tag, passphrase);
 };
+
+exports.RSAPrivateKey = asn.define('RSAPrivateKey', function () {
+  this.seq().obj(
+    this.key('version').int({
+      0: 'v1',
+      1: 'v2',
+      2: 'v3'
+    }),
+    this.key('modulus').int(),
+    this.key('publicExponent').int(),
+    this.key('privateExponent').int(),
+    this.key('prime1').int(),
+    this.key('prime2').int(),
+    this.key('exponent1').int(),
+    this.key('exponent2').int(),
+    this.key('coefficient').int(),
+    this.key('otherPrimeInfos').optional()
+  );
+});
 
 exports.serialize = function (buffers) {
   var parts = []
@@ -80,6 +101,9 @@ function PEM (input, tag, passphrase) {
       this.pubkey = exports.readSSHPubkey(this.sshPubkey);
     }
     this.decode(input, passphrase);
+    if (input.indexOf('-----BEGIN RSA PRIVATE KEY-----') === 0) {
+      this.privateKey = exports.RSAPrivateKey.decode(this.buf, 'der');
+    }
   }
 }
 
@@ -101,35 +125,17 @@ PEM.prototype.decode = function (str, passphrase) {
   // store input
   if (str) this.pem = str.toString('ascii').trim();
   var pem = this.pem;
-  var match = this.pem.match(/\-\-\-\-\-\s*BEGIN\s*([^\-]*)\-\-\-\-\-\r?\n/);
+  var match = pem.match(/\-\-\-\-\-\s*BEGIN\s*([^\-]*)\-\-\-\-\-\r?\n/);
   if (!match) throw new Error('no start tag found in PEM');
   this.tag = match[1].trim();
   // parse DEK-Info
-  var dekInfo = this.pem.match(/DEK-Info: ([^,]+),([0-9A-F]+)/i);
+  var dekInfo = pem.match(/DEK-Info: ([^,]+),([0-9A-F]+)/i);
   if (dekInfo) {
     if (typeof passphrase !== 'string')
       throw new Error('PEM is encrypted but no passphrase given');
     var algorithm = dekInfo[1].toLowerCase();
     var salt = Buffer(dekInfo[2], 'hex');
-    // @todo: is this necessary?
-    var keyLength = (function (algorithm) {
-      switch (algorithm) {
-        case 'aes-128-cbc': return 128;
-        case 'aes-192-cbc': return 192;
-        case 'aes-256-cbc': return 256;
-        case 'bf-cbc': return 256;
-        case 'cast-cbc': return 128;
-        case 'des-cbc': return 64;
-        case 'desx-cbc': return 184;
-        case 'des-ede-cbc': return 128;
-        case 'des-ede3-cbc': return 192;
-        case 'idea-cbc': return 128;
-        case 'rc2-cbc': return 256;
-        case 'rc5-cbc': return 128;
-        default: return 512;
-      }
-    })(algorithm);
-    var key = crypto.pbkdf2Sync(passphrase, salt, 1, keyLength);
+    var key = EVP_BytesToKey(dekInfo[1], passphrase, salt);
     var decipher = crypto.createDecipher(algorithm, key, salt);
     pem = pem
       .replace(/Proc-Type: .*\s*/, '')
@@ -139,7 +145,6 @@ PEM.prototype.decode = function (str, passphrase) {
   // strip to base64 data
   this.buf = Buffer(
     pem
-      .toString('ascii')
       .replace(/.*\-\-\-\-\-BEGIN.*\-\-\-\-\-\s*/, '')
       .replace(/\r?\n\-\-\-\-\-END.*\-\-\-\-\-.*/, '')
       .replace(/\s*/g, '')
@@ -151,6 +156,14 @@ PEM.prototype.decode = function (str, passphrase) {
     this.buf = Buffer.concat([buf1, decipher.final()]);
   }
   return this.buf;
+};
+
+exports.keyBytes = {
+  'DES-EDE3-CBC': 24,
+  'DES-CBC': 8,
+  'AES-128-CBC': 16,
+  'AES-192-CBC': 24,
+  'AES-256-CBC': 32
 };
 
 // encode buffer -> PEM string
@@ -167,8 +180,7 @@ PEM.prototype.encode = function (buf, tag, passphrase) {
       + ','
       + (salt.toString('hex').toUpperCase())
       + '\n\n');
-    var keyLength = 256;
-    var key = crypto.pbkdf2Sync(passphrase, salt, 1, keyLength);
+    var key = EVP_BytesToKey(algorithm.toUpperCase(), passphrase, salt);
     var cipher = crypto.createCipher(algorithm, key, salt);
     var buf1 = cipher.update(buf);
     buf = Buffer.concat([buf1, cipher.final()]);

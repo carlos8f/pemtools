@@ -81,4 +81,13 @@ describe('ssh key', function () {
       done();
     });
   });
+  it('private key', function (done) {
+    fs.readFile('test.pem', {encoding: 'ascii'}, function (err, privateKey) {
+      assert.ifError(err);
+      pem = pemtools(privateKey, null, 'this is so super cool');
+      assert.equal(pem.tag, 'RSA PRIVATE KEY');
+      console.log(pem.privateKey);
+      done();
+    });
+  });
 });
