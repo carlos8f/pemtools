@@ -72,7 +72,7 @@ exports.writeSSHPubkey = function (opts) {
       opts.modulus,
     ]).toString('base64'))
     + ' '
-    + opts.comment
+    + (opts.comment || '')
     + '\n';
 };
 
@@ -122,6 +122,13 @@ function PEM (input, tag, passphrase) {
           privateKey[k] = exports.signBuffer(num.toBuffer());
         }
       });
+      this.pubkey = {
+        type: 'ssh-rsa',
+        modulus: privateKey.modulus,
+        publicExponent: privateKey.publicExponent,
+        bits: (privateKey.modulus.length - 1) * 8
+      };
+      this.sshPubkey = exports.writeSSHPubkey(this.pubkey);
     }
   }
 }

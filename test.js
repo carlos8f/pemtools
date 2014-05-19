@@ -142,6 +142,10 @@ describe('ssh key', function () {
           throw new Error(k + ': ' + e.message);
         }
       });
+      assert.deepEqual(pem.pubkey.modulus, params.modulus);
+      assert.deepEqual(pem.pubkey.publicExponent, params.publicExponent);
+      assert.equal(pem.pubkey.bits, 2048);
+      assert.equal(pem.pubkey.type, 'ssh-rsa');
       done();
     });
   });
