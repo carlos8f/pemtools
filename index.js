@@ -2,6 +2,7 @@ var crypto = require('crypto')
   , sshKeyToPEM = require('ssh-key-to-pem')
   , asn = require('asn1.js')
   , sshKeyDecrypt = require('ssh-key-decrypt')
+  , bignum = require('bignum')
 
 // constructor
 module.exports = exports = function (input, tag, passphrase) {
@@ -61,12 +62,14 @@ exports.unserialize = function (buf) {
 
 exports.writeSSHPubkey = function (opts) {
   opts || (opts = {});
+  var exp = opts.publicExponent;
+  if (exp[0] === 0) exp = exp.slice(1);
   return (opts.type || 'ssh-rsa')
     + ' '
     + (exports.serialize([
       opts.type || 'ssh-rsa',
-      opts.publicExponent,
-      opts.modulus
+      exp,
+      opts.modulus,
     ]).toString('base64'))
     + ' '
     + opts.comment
@@ -81,7 +84,7 @@ exports.readSSHPubkey = function (str) {
   return {
     type: parts[0].toString('ascii'),
     modulus: parts[2],
-    publicExponent: parts[1],
+    publicExponent: exports.signBuffer(parts[1]),
     bits: (parts[2].length - 1) * 8,
     comment: input[2] ? input.slice(2).join(' ') : ''
   };
@@ -108,21 +111,33 @@ function PEM (input, tag, passphrase) {
       var privateKey = this.privateKey;
       Object.keys(privateKey).forEach(function (k) {
         if (typeof privateKey[k] !== 'string' && privateKey[k] !== null) {
-          if (typeof privateKey[k] === 'number') {
-            var hex = privateKey[k].toString(16);
-            if (hex.length % 2) hex = '0' + hex;
-            privateKey[k] = Buffer(hex, 'hex');
+          var num;
+          if (Buffer.isBuffer(privateKey[k])) {
+            num = bignum.fromBuffer(privateKey[k]);
           }
-          else {
-            var buf = privateKey[k].toBuffer();
-            if (!k.match(/exponent/)) buf = Buffer.concat([Buffer('00', 'hex'), buf]);
-            privateKey[k] = buf;
+          else if (typeof privateKey[k] === 'number') {
+            num = bignum(privateKey[k]);
           }
+          else num = privateKey[k];
+          privateKey[k] = exports.signBuffer(num.toBuffer());
         }
       });
     }
   }
 }
+
+// Extend the buffer with the signed (two's complement)
+// Buffer representation
+exports.signBuffer = function (buf) {
+  var num = bignum.fromBuffer(buf);
+  var byteLength = Math.ceil(num.bitLength() / 8);
+  var msb = bignum(2).pow(byteLength).sub(1);
+  var buf = num.toBuffer();
+  if (num.and(msb)) buf = Buffer.concat([Buffer('00', 'hex'), buf]);
+  //else buf = Buffer.concat([Buffer('01', 'hex'), buf]);
+  hex = buf.toString('hex');
+  return Buffer(hex, 'hex');
+};
 
 PEM.prototype.toString = function () {
   return this.pem;
