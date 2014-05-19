@@ -94,6 +94,9 @@ describe('ssh key', function () {
             if (header) {
               if (parts.length) {
                 params[header] = Buffer(parts.join(''), 'hex');
+                if (header.match(/exponent|coefficient/i)) {
+                  params[header] = pemtools.signBuffer(params[header]);
+                }
                 parts = [];
               }
             }
@@ -131,14 +134,14 @@ describe('ssh key', function () {
       pem = pemtools(privateKey, null, 'this is so super cool');
       assert.equal(pem.tag, 'RSA PRIVATE KEY');
       assert.equal(pem.privateKey.version, 'v1');
-      assert.deepEqual(pem.privateKey.modulus, params.modulus);
-      assert.deepEqual(pem.privateKey.publicExponent, params.publicExponent);
-      assert.deepEqual(pem.privateKey.privateExponent, params.privateExponent);
-      assert.deepEqual(pem.privateKey.prime1, params.prime1);
-      assert.deepEqual(pem.privateKey.prime2, params.prime2);
-      assert.deepEqual(pem.privateKey.exponent1, params.exponent1);
-      assert.deepEqual(pem.privateKey.exponent2, params.exponent2);
-      assert.deepEqual(pem.privateKey.coefficient, params.coefficient);
+      Object.keys(params).forEach(function (k) {
+        try {
+          assert.deepEqual(pem.privateKey[k], params[k]);
+        }
+        catch (e) {
+          throw new Error(k + ': ' + e.message);
+        }
+      });
       done();
     });
   });

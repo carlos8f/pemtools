@@ -134,7 +134,7 @@ exports.signBuffer = function (buf) {
   var msb = bignum(2).pow(byteLength).sub(1);
   var buf = num.toBuffer();
   if (num.and(msb)) buf = Buffer.concat([Buffer('00', 'hex'), buf]);
-  //else buf = Buffer.concat([Buffer('01', 'hex'), buf]);
+  else buf = Buffer.concat([Buffer('01', 'hex'), buf]);
   hex = buf.toString('hex');
   return Buffer(hex, 'hex');
 };
