@@ -133,17 +133,10 @@ function PEM (input, tag, passphrase) {
   }
 }
 
-// Extend the buffer with the signed (two's complement)
-// Buffer representation
+// Extend the buffer with a sign byte (positive)
 exports.signBuffer = function (buf) {
   var num = bignum.fromBuffer(buf);
-  var byteLength = Math.ceil(num.bitLength() / 8);
-  var msb = bignum(2).pow(byteLength).sub(1);
-  var buf = num.toBuffer();
-  if (num.and(msb)) buf = Buffer.concat([Buffer('00', 'hex'), buf]);
-  else buf = Buffer.concat([Buffer('01', 'hex'), buf]);
-  hex = buf.toString('hex');
-  return Buffer(hex, 'hex');
+  return Buffer.concat([Buffer('00', 'hex'), num.toBuffer()]);
 };
 
 PEM.prototype.toString = function () {
