@@ -114,9 +114,12 @@ describe('ssh key', function () {
     });
   });
 
+  var pubkey;
+
   it('public key', function (done) {
-    fs.readFile(keyfile + '.pub', {encoding: 'ascii'}, function (err, pubkey) {
+    fs.readFile(keyfile + '.pub', {encoding: 'ascii'}, function (err, _pubkey) {
       assert.ifError(err);
+      pubkey = _pubkey;
       pem = pemtools(pubkey);
       assert.equal(pem.tag, 'PUBLIC KEY');
       assert.equal(pem.pubkey.bits, 2048);
@@ -146,6 +149,9 @@ describe('ssh key', function () {
       assert.deepEqual(pem.pubkey.publicExponent, params.publicExponent);
       assert.equal(pem.pubkey.bits, 2048);
       assert.equal(pem.pubkey.type, 'ssh-rsa');
+      var pemtools_version = pem.toSSH().split(' ').slice(0, 2).join(' ');
+      var keygen_version = pubkey.split(' ').slice(0, 2).join(' ');
+      assert.equal(pemtools_version, keygen_version);
       done();
     });
   });
