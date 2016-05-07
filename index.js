@@ -3,6 +3,7 @@ var crypto = require('crypto')
   , asn = require('asn1.js')
   , sshKeyDecrypt = require('ssh-key-decrypt')
   , bignum = require('bignum')
+  , cbs = require('cbs')
 
 // constructor
 module.exports = exports = function (input, tag, passphrase) {
@@ -30,35 +31,8 @@ exports.RSAPrivateKey = asn.define('RSAPrivateKey', function () {
   );
 });
 
-exports.serialize = function (buffers) {
-  var parts = []
-    , idx = 0
-  buffers.forEach(function (part) {
-    var len = Buffer(4);
-    if (typeof part === 'string') part = Buffer(part);
-    len.writeUInt32BE(part.length, 0);
-    parts.push(len);
-    idx += len.length;
-    parts.push(part);
-    idx += part.length;
-  });
-  return Buffer.concat(parts);
-};
-
-exports.unserialize = function (buf) {
-  var parts = [];
-  var l = buf.length, idx = 0;
-  while (idx < l) {
-    var dlen = buf.readUInt32BE(idx);
-    idx += 4;
-    var start = idx;
-    var end = start + dlen;
-    var part = buf.slice(start, end);
-    parts.push(part);
-    idx += part.length;
-  }
-  return parts;
-};
+exports.serialize = cbs.serialize;
+exports.unserialize = cbs.unserialize;
 
 exports.writeSSHPubkey = function (opts) {
   opts || (opts = {});
