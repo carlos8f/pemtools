@@ -1,6 +1,6 @@
 {
   "name": "pemtools",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Convert Buffers to/from PEM strings, and read/write SSH/RSA key files. supports DEK encryption.",
   "main": "index.js",
   "scripts": {
@@ -22,7 +22,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git://gist.github.com/f0ab86a32d130c3634a3.git"
+    "url": "git://github.com/carlos8f/pemtools.git"
   },
   "devDependencies": {
     "idgen": "^2.0.2",
@@ -36,10 +36,6 @@
     "cbs": "^0.1.1",
     "ssh-key-decrypt": "git+https://github.com/carlos8f/ssh-key-decrypt.git",
     "ssh-key-to-pem": "^0.11.1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/carlos8f/pemtools.git"
   },
   "homepage": "https://github.com/carlos8f/pemtools",
   "bugs": {
