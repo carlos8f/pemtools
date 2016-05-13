@@ -2,7 +2,7 @@ var crypto = require('crypto')
   , sshKeyToPEM = require('ssh-key-to-pem')
   , asn = require('asn1.js')
   , sshKeyDecrypt = require('ssh-key-decrypt')
-  , bignum = require('bignum')
+  , BN = require('bn.js')
   , cbs = require('cbs')
 
 // constructor
@@ -87,12 +87,12 @@ function PEM (input, tag, passphrase) {
         if (typeof privateKey[k] !== 'string' && privateKey[k] !== null) {
           var num;
           if (Buffer.isBuffer(privateKey[k])) {
-            num = bignum.fromBuffer(privateKey[k]);
+            num = new BN(privateKey[k]);
           }
           else if (typeof privateKey[k] === 'number') {
-            num = bignum(privateKey[k]);
+            num = new BN(privateKey[k]);
           }
-          else num = privateKey[k];
+          else num = new BN(privateKey[k]);
           privateKey[k] = exports.signBuffer(num.toBuffer());
         }
       });
