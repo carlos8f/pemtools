@@ -109,7 +109,7 @@ function PEM (input, tag, passphrase) {
 
 // Extend the buffer with a sign byte (positive)
 exports.signBuffer = function (buf) {
-  var num = bignum.fromBuffer(buf);
+  var num = new BN(buf);
   return Buffer.concat([Buffer('00', 'hex'), num.toBuffer()]);
 };
 
