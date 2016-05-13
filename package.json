@@ -4,7 +4,7 @@
   "description": "Convert Buffers to/from PEM strings, and read/write SSH/RSA key files. supports DEK encryption.",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --reporter spec --bail --timeout 10s"
+    "test": "mocha --reporter spec --bail --timeout 10s test.js"
   },
   "keywords": [
     "ssh",
